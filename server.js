@@ -1,27 +1,36 @@
 const express = require('express');
 const http = require('http');
-const socketIo = require('socket.io');
+const path = require('path');
+const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // 변경: 외부 접속 가능
+    methods: ["GET", "POST"]
+  }
+});
 
-// 클라이언트가 연결되었을 때
+app.use(express.static(path.join(__dirname, 'client/build')));
+
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+});
+
 io.on('connection', (socket) => {
-  console.log('A user connected');
+  console.log('✅ 사용자가 연결됨');
 
-  // 메시지가 오면 처리하는 부분
   socket.on('chat message', (msg) => {
-    io.emit('chat message', msg); // 모든 클라이언트에게 메시지 전송
+    io.emit('chat message', msg);
   });
 
-  // 클라이언트가 연결을 끊었을 때
   socket.on('disconnect', () => {
-    console.log('A user disconnected');
+    console.log('❌ 사용자가 나감');
   });
 });
 
-// 서버 포트 설정
-server.listen(3001, () => {
-  console.log('listening on *:3001');
+const PORT = process.env.PORT || 3001; // Render에서 PORT 자동 할당
+server.listen(PORT, () => {
+  console.log(`🚀 서버가 ${PORT}번 포트에서 실행 중...`);
 });
